@@ -1,0 +1,142 @@
+package com.tanglycohort.greenflow.dashboard
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tanglycohort.greenflow.data.model.Plan
+import com.tanglycohort.greenflow.data.model.Profile
+import com.tanglycohort.greenflow.data.model.Subscription
+import com.tanglycohort.greenflow.data.repository.AuthRepository
+import com.tanglycohort.greenflow.data.repository.PlansRepository
+import com.tanglycohort.greenflow.data.repository.ProfilesRepository
+import com.tanglycohort.greenflow.data.repository.SubscriptionsRepository
+import com.tanglycohort.greenflow.util.PhoneUtils
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.time.Instant
+
+enum class SubscriptionDisplayStatus {
+    INACTIVE, BLOCKED, CANCELLED, TRIAL_EXPIRED, EXPIRED, TRIAL, ACTIVE
+}
+
+data class DashboardState(
+    val loading: Boolean = true,
+    val subscription: Subscription? = null,
+    val hasEverHadSubscription: Boolean = false,
+    val plans: List<Plan> = emptyList(),
+    val profile: Profile? = null,
+    val profileSaveSuccess: Boolean = false,
+    val error: String? = null
+)
+
+sealed class DashboardEvent {
+    data object NavigateToLogin : DashboardEvent()
+    data class ShowError(val message: String) : DashboardEvent()
+}
+
+class DashboardViewModel(
+    private val authRepository: AuthRepository = AuthRepository(),
+    private val subscriptionsRepository: SubscriptionsRepository = SubscriptionsRepository(),
+    private val plansRepository: PlansRepository = PlansRepository(),
+    private val profilesRepository: ProfilesRepository = ProfilesRepository()
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(DashboardState())
+    val state: StateFlow<DashboardState> = _state.asStateFlow()
+
+    private val _events = MutableSharedFlow<DashboardEvent>()
+    val events = _events.asSharedFlow()
+
+    fun loadDashboard(userId: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+            val subRepo = subscriptionsRepository
+            val profRepo = profilesRepository
+            val plansRepo = plansRepository
+            val results = kotlinx.coroutines.coroutineScope {
+                awaitAll(
+                    async { subRepo.getActiveSubscription(userId) },
+                    async { subRepo.hasEverHadSubscription(userId) },
+                    async { profRepo.getProfile(userId) },
+                    async { plansRepo.getPlans() }
+                )
+            }
+            val sub = results[0] as? Subscription
+            val hasEver = results[1] as? Boolean ?: false
+            val profile = results[2] as? Profile
+            val plans = (results[3] as? List<Plan>) ?: emptyList()
+            _state.value = _state.value.copy(
+                loading = false,
+                subscription = sub,
+                hasEverHadSubscription = hasEver,
+                profile = profile,
+                plans = plans
+            )
+        }
+    }
+
+    fun subscriptionDisplayStatus(): SubscriptionDisplayStatus {
+        val sub = _state.value.subscription ?: return SubscriptionDisplayStatus.INACTIVE
+        return when {
+            sub.status == "blocked" -> SubscriptionDisplayStatus.BLOCKED
+            sub.status == "cancelled" -> SubscriptionDisplayStatus.CANCELLED
+            sub.endsAt != null && Instant.parse(sub.endsAt) < Instant.now() && sub.status == "trial" -> SubscriptionDisplayStatus.TRIAL_EXPIRED
+            sub.endsAt != null && Instant.parse(sub.endsAt) < Instant.now() -> SubscriptionDisplayStatus.EXPIRED
+            sub.status == "trial" -> SubscriptionDisplayStatus.TRIAL
+            else -> SubscriptionDisplayStatus.ACTIVE
+        }
+    }
+
+    fun canShowTrialButton(): Boolean =
+        subscriptionDisplayStatus() == SubscriptionDisplayStatus.INACTIVE && !_state.value.hasEverHadSubscription
+
+    fun startTrial(userId: String) {
+        viewModelScope.launch {
+            subscriptionsRepository.insertTrial(userId).onSuccess {
+                loadDashboard(userId)
+            }.onFailure { e ->
+                _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה"))
+            }
+        }
+    }
+
+    fun subscribeToPlan(userId: String, plan: Plan) {
+        viewModelScope.launch {
+            val planId = plan.id ?: return@launch
+            subscriptionsRepository.subscribeToPlan(userId, planId, plan.durationDays).onSuccess {
+                loadDashboard(userId)
+            }.onFailure { e ->
+                _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה בהפעלת מנוי"))
+            }
+        }
+    }
+
+    fun saveProfile(userId: String, name: String?, phone: String?) {
+        viewModelScope.launch {
+            val normalizedPhone = phone?.let { PhoneUtils.normalizeAndValidate(it) }
+            if (phone != null && normalizedPhone == null) {
+                _events.emit(DashboardEvent.ShowError("מספר טלפון לא תקין"))
+                return@launch
+            }
+            profilesRepository.updateProfile(userId, name?.takeIf { it.isNotBlank() }, normalizedPhone)
+                .onSuccess {
+                    _state.value = _state.value.copy(profileSaveSuccess = true, profile = _state.value.profile?.copy(name = name ?: _state.value.profile?.name, phone = normalizedPhone ?: _state.value.profile?.phone))
+                }
+                .onFailure { e ->
+                    _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה בשמירה"))
+                }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.signOut()
+            _events.emit(DashboardEvent.NavigateToLogin)
+        }
+    }
+}

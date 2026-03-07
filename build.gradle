@@ -1,0 +1,33 @@
+buildscript {
+    ext {
+        // Sdk and tools
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        minSdkVersion = 29
+
+        navVersion = "2.7.7"
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:1.9.22"
+        classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navVersion"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

@@ -1,0 +1,10 @@
+*.iml
+.externalNativeBuild
+.gradle
+.idea/*
+/build
+/captures
+/local.properties
+ktlint
+app/release
+keystore.properties

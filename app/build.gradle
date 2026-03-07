@@ -1,0 +1,104 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.serialization'
+    id 'androidx.navigation.safeargs.kotlin'
+}
+
+android {
+    namespace 'com.tanglycohort.greenflow'
+
+    compileSdkVersion rootProject.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.tanglycohort.greenflow"
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionCode 10
+        versionName "1.0.3"
+        buildConfigField "String", "SERVER_BASE_URL", "\"https://dzqrjfxsgfymwqiabgwl.supabase.co\""
+        buildConfigField "String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cXJqZnhzZ2Z5bXdxaWFiZ3dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTU0NTIsImV4cCI6MjA4NzMzMTQ1Mn0.Ri0XAfRU7K2y28gldDuvINyqdKP24R6NcKdGNlJPcL8\""
+        buildConfigField "String", "BUG_REPORT_URL", "\"https://dzqrjfxsgfymwqiabgwl.supabase.co/functions/v1/bug-report\""
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+        compose true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.8'
+    }
+}
+
+dependencies {
+    // Navigation component
+    implementation "androidx.navigation:navigation-fragment-ktx:$rootProject.navVersion"
+    implementation "androidx.navigation:navigation-ui-ktx:$rootProject.navVersion"
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+
+    // Preferences component
+    implementation "androidx.preference:preference-ktx:1.2.0"
+
+    // WorkManager component
+    implementation "androidx.work:work-runtime-ktx:2.7.1"
+
+    // Third-party
+    implementation "com.squareup.okhttp3:okhttp:4.8.1"
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation "com.google.android.material:compose-theme-adapter-3:1.1.1"
+
+    // Core
+    implementation "androidx.activity:activity-ktx:1.5.1"
+    implementation "androidx.appcompat:appcompat:1.5.0"
+    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
+    implementation "androidx.core:core-ktx:1.8.0"
+    implementation "androidx.fragment:fragment-ktx:1.5.2"
+    implementation "com.google.android.material:material:1.13.0"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.7.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0"
+
+    // Supabase 3.x
+    def supabaseVersion = "2.0.0"
+    implementation platform("io.github.jan-tennert.supabase:bom:$supabaseVersion")
+    implementation "io.github.jan-tennert.supabase:postgrest-kt"
+    implementation "io.github.jan-tennert.supabase:gotrue-kt"
+    implementation "io.github.jan-tennert.supabase:functions-kt"
+    implementation "io.ktor:ktor-client-okhttp:2.3.7"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2"
+
+    // Compose
+    def composeBom = platform('androidx.compose:compose-bom:2023.08.00')
+    implementation composeBom
+    androidTestImplementation composeBom
+
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.runtime:runtime-livedata'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    testImplementation "junit:junit:4.13.2"
+    androidTestImplementation "androidx.test.espresso:espresso-core:3.4.0"
+    androidTestImplementation "androidx.test.ext:junit:1.1.3"
+}

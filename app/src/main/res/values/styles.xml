@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.GreenFlow.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">@color/onPrimary</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="cornerRadius">@dimen/button_corner</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.GreenFlow.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.GreenFlow.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="cardCornerRadius">@dimen/card_corner</item>
+        <item name="cardElevation">@dimen/card_elevation</item>
+    </style>
+
+    <style name="Widget.GreenFlow.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="hintTextColor">@color/primary</item>
+        <item name="boxStrokeColor">@color/outline</item>
+    </style>
+</resources>

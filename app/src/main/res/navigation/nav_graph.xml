@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/LoginFragment">
+
+    <fragment
+        android:id="@+id/LoginFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.LoginFragment"
+        android:label="@string/login">
+        <action
+            android:id="@+id/action_LoginFragment_to_RegisterFragment"
+            app:destination="@id/RegisterFragment" />
+        <action
+            android:id="@+id/action_LoginFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/LoginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/RegisterFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.RegisterFragment"
+        android:label="@string/register">
+        <action
+            android:id="@+id/action_RegisterFragment_to_LoginFragment"
+            app:destination="@id/LoginFragment"
+            app:popUpTo="@id/RegisterFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/DashboardFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.DashboardFragment"
+        android:label="@string/dashboard">
+        <action
+            android:id="@+id/action_DashboardFragment_to_LoginFragment"
+            app:destination="@id/LoginFragment"
+            app:popUpTo="@id/DashboardFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_DashboardFragment_to_PermissionsFragment"
+            app:destination="@id/PermissionsFragment"
+            app:popUpTo="@id/DashboardFragment"
+            app:popUpToInclusive="false" />
+        <action
+            android:id="@+id/action_DashboardFragment_to_SubscriptionFragment"
+            app:destination="@id/SubscriptionFragment"
+            app:popUpTo="@id/DashboardFragment"
+            app:popUpToInclusive="false" />
+        <action
+            android:id="@+id/action_DashboardFragment_to_ProfileFragment"
+            app:destination="@id/ProfileFragment"
+            app:popUpTo="@id/DashboardFragment"
+            app:popUpToInclusive="false" />
+        <action
+            android:id="@+id/action_DashboardFragment_to_ActivityFragment"
+            app:destination="@id/ActivityFragment"
+            app:popUpTo="@id/DashboardFragment"
+            app:popUpToInclusive="false" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/ActivityFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.ActivityFragment"
+        android:label="@string/activity_screen_title">
+        <action
+            android:id="@+id/action_ActivityFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/ActivityFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/ProfileFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.ProfileFragment"
+        android:label="@string/menu_profile">
+        <action
+            android:id="@+id/action_ProfileFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/ProfileFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/SubscriptionFragment"
+        android:name="com.tanglycohort.greenflow.dashboard.SubscriptionFragment"
+        android:label="@string/menu_subscription">
+        <action
+            android:id="@+id/action_SubscriptionFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/SubscriptionFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/PermissionsFragment"
+        android:name="com.tanglycohort.greenflow.PermissionsFragment"
+        android:label="fragment_permissions">
+        <action
+            android:id="@+id/action_PermissionsFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/PermissionsFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_PermissionsFragment_to_PermissionsDeniedFragment"
+            app:destination="@id/PermissionsDeniedFragment"
+            app:popUpTo="@id/PermissionsFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/PermissionsEduFragment"
+        android:name="com.tanglycohort.greenflow.PermissionsEduFragment"
+        android:label="fragment_permissions_edu">
+        <action
+            android:id="@+id/action_PermissionsEduFragment_to_PermissionsFragment"
+            app:destination="@id/PermissionsFragment"
+            app:popUpTo="@id/PermissionsEduFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/PermissionsDeniedFragment"
+        android:name="com.tanglycohort.greenflow.PermissionsDeniedFragment"
+        android:label="fragment_permissions_denied">
+        <action
+            android:id="@+id/action_PermissionsDeniedFragment_to_PermissionsFragment"
+            app:destination="@id/PermissionsFragment"
+            app:popUpTo="@id/PermissionsDeniedFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_PermissionsDeniedFragment_to_DashboardFragment"
+            app:destination="@id/DashboardFragment"
+            app:popUpTo="@id/PermissionsDeniedFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+</navigation>

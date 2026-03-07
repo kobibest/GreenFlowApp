@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.GreenFlow.DayNight" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/onPrimary</item>
+        <item name="colorPrimaryContainer">@color/primaryLight</item>
+        <item name="colorOnPrimaryContainer">@color/primaryDark</item>
+        <item name="colorSecondary">@color/primaryDark</item>
+        <item name="colorOnSecondary">@color/onPrimary</item>
+        <item name="colorSecondaryContainer">@color/primaryLight</item>
+        <item name="colorOnSecondaryContainer">@color/onPrimary</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/primaryDark</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:layoutDirection">rtl</item>
+        <item name="materialButtonStyle">@style/Widget.GreenFlow.Button</item>
+    </style>
+</resources>

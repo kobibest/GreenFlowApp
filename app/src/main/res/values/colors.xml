@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="primary">#1B9B5E</color>
+    <color name="primaryDark">#157A4A</color>
+    <color name="primaryLight">#E8F5EE</color>
+    <color name="primaryContainer">#D4EDDA</color>
+
+    <!-- Surfaces -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surfaceVariant">#F5F9F6</color>
+    <color name="background">#F0F7F2</color>
+
+    <!-- Text -->
+    <color name="onPrimary">#FFFFFF</color>
+    <color name="onSurface">#1A2E24</color>
+    <color name="onSurfaceVariant">#5A6B63</color>
+    <color name="outline">#A8B8B0</color>
+
+    <!-- Night -->
+    <color name="backgroundNight">#121D18</color>
+    <color name="surfaceNight">#1A2E24</color>
+    <color name="onSurfaceNight">#E8F0EC</color>
+    <color name="onSurfaceVariantNight">#A8B8B0</color>
+</resources>

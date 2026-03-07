@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:fillViewport="true"
+    android:layoutDirection="rtl">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/screen_padding_h"
+        android:paddingEnd="@dimen/screen_padding_h"
+        android:paddingTop="@dimen/screen_padding_v"
+        android:paddingBottom="@dimen/spacing_xl">
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.GreenFlow.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_md"
+            app:cardElevation="@dimen/card_elevation">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/spacing_lg">
+
+                <TextView
+                    android:id="@+id/toggleLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/main_toggle_label"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textDirection="rtl" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/mainSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_sm"
+            android:text="@string/main_section_actions"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textDirection="rtl" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.GreenFlow.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardElevation="@dimen/card_elevation">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_lg">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/openSettingsButton"
+                    style="@style/Widget.GreenFlow.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/main_open_settings"
+                    android:textDirection="rtl"
+                    app:icon="@drawable/ic_shield_permissions"
+                    app:iconGravity="textStart"
+                    app:iconPadding="@dimen/spacing_sm"
+                    app:iconSize="22dp"
+                    app:iconTint="@color/onPrimary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/refreshFiltersButton"
+                    style="@style/Widget.GreenFlow.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/main_refresh_filters"
+                    android:textDirection="rtl"
+                    app:icon="@drawable/ic_refresh"
+                    app:iconGravity="textStart"
+                    app:iconPadding="@dimen/spacing_sm"
+                    app:iconSize="22dp"
+                    app:iconTint="@color/onPrimary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/reportBugButton"
+                    style="@style/Widget.GreenFlow.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/main_report_bug"
+                    android:textDirection="rtl" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

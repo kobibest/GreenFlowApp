@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "sender": "Leumi",
+      "words": ["הוא קוד האימות שלך. הקוד ישמש אותך בהמשך התהליך. לאומי דיגיטל."],
+      "match": "any"
+    },
+    {
+      "sender": "035558860",
+      "words": ["קוד הכניסה שלך הוא"],
+      "match": "any"
+    },
+    {
+      "sender": "Discount",
+      "words": ["קוד האימות שלך למשכנתא הוא"],
+      "match": "any"
+    },
+    {
+      "sender": "Mercantile",
+      "words": ["קוד האימות שלך למשכנתא הוא"],
+      "match": "any"
+    },
+    {
+      "sender": "BHapoalim",
+      "words": ["♦️ לכניסה לחשבונך"],
+      "match": "any"
+    },
+    {
+      "sender": "FIBI",
+      "words": ["להשלמת הכניסה נדרש קוד אימות"],
+      "match": "any"
+    },
+    {
+      "sender": "SMARTNPV",
+      "words": ["קוד האימות שלך"],
+      "match": "any"
+    }
+  ]
+}
