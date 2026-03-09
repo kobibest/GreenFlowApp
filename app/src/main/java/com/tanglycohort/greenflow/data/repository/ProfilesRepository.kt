@@ -22,7 +22,7 @@ class ProfilesRepository {
 
     suspend fun updateProfile(userId: String, name: String?, phone: String?): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val updates = mutableMapOf<String, Any?>()
+            val updates = mutableMapOf<String, String?>()
             if (name != null) updates["name"] = name
             if (phone != null) updates["phone"] = phone
             if (updates.isEmpty()) return@runCatching

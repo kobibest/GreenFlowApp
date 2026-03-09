@@ -37,6 +37,7 @@ data class DashboardState(
 sealed class DashboardEvent {
     data object NavigateToLogin : DashboardEvent()
     data class ShowError(val message: String) : DashboardEvent()
+    data object TrialStarted : DashboardEvent()
 }
 
 class DashboardViewModel(
@@ -99,6 +100,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             subscriptionsRepository.insertTrial(userId).onSuccess {
                 loadDashboard(userId)
+                _events.emit(DashboardEvent.TrialStarted)
             }.onFailure { e ->
                 _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה"))
             }
@@ -112,6 +114,28 @@ class DashboardViewModel(
                 loadDashboard(userId)
             }.onFailure { e ->
                 _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה בהפעלת מנוי"))
+            }
+        }
+    }
+
+    /** Call after a successful Google Play purchase: verify with backend, then refresh dashboard. */
+    fun onPlayPurchaseSuccess(
+        userId: String,
+        accessToken: String,
+        purchaseToken: String,
+        productId: String,
+        packageName: String
+    ) {
+        viewModelScope.launch {
+            subscriptionsRepository.verifyPlayPurchase(
+                accessToken = accessToken,
+                purchaseToken = purchaseToken,
+                productId = productId,
+                packageName = packageName
+            ).onSuccess {
+                loadDashboard(userId)
+            }.onFailure { e ->
+                _events.emit(DashboardEvent.ShowError(e.message ?: "שגיאה באימות התשלום"))
             }
         }
     }

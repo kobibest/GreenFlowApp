@@ -16,8 +16,10 @@ import androidx.navigation.fragment.findNavController
 import com.tanglycohort.greenflow.BuildConfig
 import com.tanglycohort.greenflow.R
 import com.tanglycohort.greenflow.databinding.FragmentLoginBinding
+import com.tanglycohort.greenflow.debug.DebugAgentLog
 import com.tanglycohort.greenflow.service.WebhookService
 import com.tanglycohort.greenflow.supabase.SupabaseProvider
+import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -35,6 +37,9 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // #region agent log
+        DebugAgentLog.log("LoginFragment.kt:onViewCreated", "Login onViewCreated start", emptyMap(), "H4")
+        // #endregion
         binding.loginButton.setOnClickListener {
             val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             binding.root.findFocus()?.let { focus -> imm?.hideSoftInputFromWindow(focus.windowToken, 0) }

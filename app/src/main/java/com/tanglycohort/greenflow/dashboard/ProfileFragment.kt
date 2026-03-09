@@ -65,6 +65,7 @@ class ProfileFragment : Fragment() {
                 when (event) {
                     is DashboardEvent.ShowError -> Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
                     DashboardEvent.NavigateToLogin -> { /* handled by Activity / drawer logout */ }
+                    DashboardEvent.TrialStarted -> Toast.makeText(requireContext(), getString(R.string.trial_started_toast), Toast.LENGTH_SHORT).show()
                 }
             }
         }

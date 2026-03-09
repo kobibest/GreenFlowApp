@@ -12,6 +12,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.navigation.NavigationView
 import com.tanglycohort.greenflow.R
 import com.tanglycohort.greenflow.bugreport.ReportBugDialogFragment
+import com.tanglycohort.greenflow.debug.DebugAgentLog
 import com.tanglycohort.greenflow.service.WebhookService
 import io.github.jan.supabase.gotrue.SessionStatus
 import kotlinx.coroutines.flow.collectLatest
@@ -23,8 +24,14 @@ class MainActivity : AppCompatActivity() {
     private val authRepository = com.tanglycohort.greenflow.data.repository.AuthRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // #region agent log
+        DebugAgentLog.log("MainActivity.kt:onCreate", "MainActivity onCreate start", emptyMap(), "H2")
+        // #endregion
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        // #region agent log
+        DebugAgentLog.log("MainActivity.kt:onCreate", "MainActivity after setContentView", emptyMap(), "H2")
+        // #endregion
 
         val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawer_layout)
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
@@ -90,9 +97,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
+            // #region agent log
+            DebugAgentLog.log("MainActivity.kt:setupNavGraph", "launch start, getting sessionStatus", emptyMap(), "H3")
+            // #endregion
             val status = authRepository.sessionStatus().first()
+            // #region agent log
+            DebugAgentLog.log("MainActivity.kt:setupNavGraph", "sessionStatus first done", mapOf("status" to status?.javaClass?.simpleName), "H3")
+            // #endregion
             val hasSession = status is SessionStatus.Authenticated
             setupNavGraph(hasSession)
+            // #region agent log
+            DebugAgentLog.log("MainActivity.kt:setupNavGraph", "setupNavGraph done", mapOf("hasSession" to hasSession), "H3")
+            // #endregion
         }
 
         lifecycleScope.launch {

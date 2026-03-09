@@ -19,3 +19,21 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep data models used by Gson / Supabase serialization
+-keep class com.tanglycohort.greenflow.data.model.** { *; }
+
+# Gson: preserve generic type information for TypeToken (fixes crash on release)
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
+# Keep Supabase / Ktor
+-keepattributes *Annotation*
+-dontwarn io.ktor.**
+
+# SLF4J: dependency brings API but no implementation on Android; suppress missing binder
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+
+# Google Play Billing
+-keep class com.android.vending.billing.**

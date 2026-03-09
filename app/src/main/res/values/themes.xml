@@ -9,9 +9,18 @@
         <item name="colorOnSecondary">@color/onPrimary</item>
         <item name="colorSecondaryContainer">@color/primaryLight</item>
         <item name="colorOnSecondaryContainer">@color/onPrimary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/onSurface</item>
+        <item name="colorSurfaceVariant">@color/surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/onSurfaceVariant</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outlineVariant</item>
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/onError</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/primaryDark</item>
         <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightStatusBar">false</item>
         <item name="android:layoutDirection">rtl</item>
         <item name="materialButtonStyle">@style/Widget.GreenFlow.Button</item>
     </style>

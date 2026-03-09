@@ -11,26 +11,35 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.work.WorkManager
 import com.google.android.material.card.MaterialCardView
+import com.tanglycohort.greenflow.AppLog
 import com.tanglycohort.greenflow.BuildConfig
 import com.tanglycohort.greenflow.DeviceId
 import com.tanglycohort.greenflow.FetchFiltersWorker
 import com.tanglycohort.greenflow.data.repository.ProfilesRepository
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.tanglycohort.greenflow.FilterSystemState
 import com.tanglycohort.greenflow.R
 import com.tanglycohort.greenflow.RuntimePermissions
 import com.tanglycohort.greenflow.SmsFilter
 import com.tanglycohort.greenflow.databinding.FragmentDashboardBinding
+import com.tanglycohort.greenflow.debug.DebugAgentLog
 import com.tanglycohort.greenflow.service.WebhookService
 import io.github.jan.supabase.gotrue.auth
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
+
+    private val viewModel: DashboardViewModel by viewModels()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
@@ -39,6 +48,9 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // #region agent log
+        DebugAgentLog.log("DashboardFragment.kt:onViewCreated", "Dashboard onViewCreated start", emptyMap(), "H4")
+        // #endregion
 
         val userId = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentUserOrNull()?.id
             ?: com.tanglycohort.greenflow.data.repository.AuthRepository().getUserIdFromSession()
@@ -55,24 +67,84 @@ class DashboardFragment : Fragment() {
             ProfilesRepository().setDeviceId(userId, DeviceId.get(requireContext()))
         }
 
+        // Auto-trigger filter fetch when dashboard is shown and no filters loaded yet (or to refresh)
+        if (SmsFilter.getFilters(requireContext()).isNullOrEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                com.tanglycohort.greenflow.data.repository.AuthRepository().refreshSession()
+                val token = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
+                FetchFiltersWorker.enqueueOnce(requireContext(), accessToken = token)
+            }
+        }
+
+        viewModel.loadDashboard(userId)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.state.collectLatest { state ->
+                binding.dashboardProgress.visibility = if (state.loading) View.VISIBLE else View.GONE
+                if (!state.loading) {
+                    val status = viewModel.subscriptionDisplayStatus()
+                    val isActive = status == SubscriptionDisplayStatus.ACTIVE || status == SubscriptionDisplayStatus.TRIAL
+                    binding.dashboardSubscriptionStatus.text = when (status) {
+                        SubscriptionDisplayStatus.ACTIVE, SubscriptionDisplayStatus.TRIAL -> getString(R.string.status_active)
+                        SubscriptionDisplayStatus.BLOCKED -> getString(R.string.status_blocked)
+                        SubscriptionDisplayStatus.EXPIRED, SubscriptionDisplayStatus.TRIAL_EXPIRED -> getString(R.string.status_expired)
+                        SubscriptionDisplayStatus.CANCELLED -> "בוטל"
+                        SubscriptionDisplayStatus.INACTIVE -> getString(R.string.status_inactive)
+                    }
+                    val sub = state.subscription
+                    val plan = sub?.planId?.let { pid -> state.plans.find { it.id == pid } }
+                    val durationDays = plan?.durationDays ?: 0
+                    // Only monthly is offered; show type only for monthly
+                    val typeStr = when {
+                        durationDays <= 0 -> null
+                        durationDays <= 35 -> getString(R.string.subscription_type_monthly)
+                        else -> null // annual no longer offered
+                    }
+                    if (typeStr != null && isActive) {
+                        binding.dashboardSubscriptionTypeLabel.visibility = View.VISIBLE
+                        binding.dashboardSubscriptionType.visibility = View.VISIBLE
+                        binding.dashboardSubscriptionType.text = typeStr
+                    } else {
+                        binding.dashboardSubscriptionTypeLabel.visibility = View.VISIBLE
+                        binding.dashboardSubscriptionType.visibility = View.VISIBLE
+                        binding.dashboardSubscriptionType.text = typeStr ?: "—"
+                    }
+                    val endDateStr = sub?.endsAt?.let { formatDate(it) } ?: "—"
+                    binding.dashboardSubscriptionEndLabel.visibility = View.VISIBLE
+                    binding.dashboardSubscriptionEndDate.visibility = View.VISIBLE
+                    binding.dashboardSubscriptionEndDate.text = endDateStr
+                }
+            }
+        }
+
+        binding.btnManageSubscription.setOnClickListener {
+            findNavController().navigate(R.id.action_DashboardFragment_to_SubscriptionFragment)
+        }
+
         // 1. Toggle On/Off
         binding.mainSwitch.isChecked = WebhookService.isServiceEnabled(requireContext())
         binding.mainSwitch.setOnCheckedChangeListener { _, isChecked ->
             WebhookService.setServiceEnabled(requireContext(), isChecked)
         }
 
-        // 2. Refresh filters + last update + forward-all-when-no-filters + filters status
+        // 2. Refresh filters + last update + filters status
         updateLastFiltersUpdateText()
         updateFiltersStatusText()
-        binding.forwardAllWhenNoFiltersSwitch.isChecked = WebhookService.isForwardAllWhenNoFilters(requireContext())
-        binding.forwardAllWhenNoFiltersSwitch.setOnCheckedChangeListener { _, isChecked ->
-            WebhookService.setForwardAllWhenNoFilters(requireContext(), isChecked)
-        }
+        observeFiltersFetchWork()
         binding.refreshFiltersButton.setOnClickListener {
-            FetchFiltersWorker.enqueueOnce(requireContext())
-            Toast.makeText(requireContext(), R.string.main_refresh_filters_toast, Toast.LENGTH_SHORT).show()
-            updateLastFiltersUpdateText()
-            updateFiltersStatusText()
+            viewLifecycleOwner.lifecycleScope.launch {
+                val authRepo = com.tanglycohort.greenflow.data.repository.AuthRepository()
+                val refreshOk = authRepo.refreshSession().isSuccess
+                if (!refreshOk) {
+                    AppLog.e("DashboardFragment", "Session refresh failed before fetch filters")
+                    Toast.makeText(requireContext(), R.string.main_refresh_session_failed, Toast.LENGTH_LONG).show()
+                }
+                val token = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
+                FetchFiltersWorker.enqueueOnce(requireContext(), accessToken = token)
+                Toast.makeText(requireContext(), R.string.main_refresh_filters_toast, Toast.LENGTH_SHORT).show()
+                updateLastFiltersUpdateText()
+                updateFiltersStatusText()
+            }
         }
 
         // 3. Denied permissions list – build dynamically and open Permissions screen on click
@@ -81,9 +153,32 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        val userId = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentUserOrNull()?.id
+            ?: com.tanglycohort.greenflow.data.repository.AuthRepository().getUserIdFromSession()
+        if (userId != null) viewModel.loadDashboard(userId)
         updateLastFiltersUpdateText()
         updateFiltersStatusText()
         refreshDeniedPermissionsList()
+    }
+
+    private fun formatDate(iso: String?): String {
+        if (iso == null) return "—"
+        return try {
+            val i = Instant.parse(iso)
+            DateTimeFormatter.ISO_LOCAL_DATE.format(i.atZone(java.time.ZoneId.systemDefault()))
+        } catch (_: Exception) { iso }
+    }
+
+    private fun observeFiltersFetchWork() {
+        WorkManager.getInstance(requireContext())
+            .getWorkInfosForUniqueWorkLiveData(FetchFiltersWorker.ONE_TIME_WORK_NAME)
+            .observe(viewLifecycleOwner) { workInfos ->
+                val finished = workInfos.any { it.state.isFinished }
+                if (finished) {
+                    updateLastFiltersUpdateText()
+                    updateFiltersStatusText()
+                }
+            }
     }
 
     private fun updateFiltersStatusText() {

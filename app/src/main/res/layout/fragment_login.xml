@@ -16,6 +16,15 @@
         android:paddingTop="48dp"
         android:paddingBottom="@dimen/spacing_xl">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_xl"
+            android:text="@string/login"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:textDirection="rtl" />
+
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.GreenFlow.Card"
             android:layout_width="match_parent"

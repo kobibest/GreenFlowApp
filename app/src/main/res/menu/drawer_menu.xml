@@ -2,20 +2,26 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/menu_dashboard"
+        android:icon="@drawable/ic_dashboard"
         android:title="@string/menu_dashboard" />
     <item
         android:id="@+id/menu_activity"
+        android:icon="@drawable/ic_chat_bubble_24"
         android:title="@string/menu_activity" />
     <item
         android:id="@+id/menu_profile"
+        android:icon="@drawable/ic_user"
         android:title="@string/menu_profile" />
     <item
         android:id="@+id/menu_subscription"
+        android:icon="@drawable/ic_subscription"
         android:title="@string/menu_subscription" />
     <item
         android:id="@+id/menu_report_bug"
+        android:icon="@drawable/ic_bug_report"
         android:title="@string/menu_report_bug" />
     <item
         android:id="@+id/menu_logout"
+        android:icon="@drawable/ic_logout"
         android:title="@string/menu_logout" />
 </menu>

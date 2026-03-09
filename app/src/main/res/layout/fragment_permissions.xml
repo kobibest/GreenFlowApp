@@ -22,10 +22,9 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_md"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
             android:text="@string/permissions_page_title"
-            android:textAppearance="?attr/textAppearanceSubtitle2"
-            android:textColor="?android:attr/textColorSecondary"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
             android:textDirection="rtl" />
 
         <com.google.android.material.card.MaterialCardView
@@ -56,7 +55,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textDirection="rtl" />
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/permissionSmsSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -93,7 +92,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textDirection="rtl" />
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/permissionNotificationsSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -130,7 +129,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textDirection="rtl" />
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/permissionBackgroundSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -166,7 +165,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textDirection="rtl" />
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/permissionBatterySwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

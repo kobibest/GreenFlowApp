@@ -9,5 +9,6 @@ data class Plan(
     val name: String? = null,
     val price: Double? = null,
     @SerialName("duration_days") val durationDays: Int? = null,
+    @SerialName("play_product_id") val playProductId: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

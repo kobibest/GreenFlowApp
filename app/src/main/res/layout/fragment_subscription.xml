@@ -17,20 +17,32 @@
         android:paddingTop="@dimen/screen_padding_v"
         android:paddingBottom="@dimen/spacing_xl">
 
-        <ProgressBar
+        <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/subscriptionProgress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:indeterminate="true"
             android:visibility="gone" />
 
         <TextView
+            android:id="@+id/subscriptionSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
+            android:text="@string/subscription_card"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
+            android:textDirection="rtl" />
+
+        <TextView
+            android:id="@+id/trialSectionTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/spacing_sm"
-            android:text="@string/subscription_card"
-            android:textAppearance="?attr/textAppearanceSubtitle2"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:text="@string/trial_section"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
+            android:textDirection="rtl"
+            android:visibility="gone" />
 
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.GreenFlow.Card"
@@ -60,16 +72,25 @@
                     android:layout_marginTop="@dimen/spacing_md"
                     android:text="@string/btn_trial"
                     android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/cancelSubscriptionButton"
+                    style="@style/Widget.GreenFlow.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/btn_cancel_subscription"
+                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_sm"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
             android:text="@string/plans_section"
-            android:textAppearance="?attr/textAppearanceSubtitle2"
-            android:textColor="?android:attr/textColorSecondary" />
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
+            android:textDirection="rtl" />
 
         <LinearLayout
             android:id="@+id/plansList"

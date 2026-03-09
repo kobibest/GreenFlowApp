@@ -17,12 +17,112 @@
         android:paddingTop="@dimen/screen_padding_v"
         android:paddingBottom="@dimen/spacing_xl">
 
-        <ProgressBar
+        <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/dashboardProgress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:indeterminate="true"
             android:visibility="gone" />
+
+        <!-- Subscription status -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
+            android:text="@string/dashboard_subscription_section"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
+            android:textDirection="rtl" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.GreenFlow.Card"
+            android:id="@+id/dashboardSubscriptionCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_md"
+            app:cardElevation="@dimen/card_elevation">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_lg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/subscription_card"
+                        android:textAppearance="?attr/textAppearanceSubtitle1"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textDirection="rtl" />
+
+                    <TextView
+                        android:id="@+id/dashboardSubscriptionStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceSubtitle1"
+                        android:textDirection="rtl" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/dashboardSubscriptionTypeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:text="@string/subscription_type_label"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textDirection="rtl"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/dashboardSubscriptionType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textDirection="rtl"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/dashboardSubscriptionEndLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:text="@string/subscription_end_date_label"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textDirection="rtl"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/dashboardSubscriptionEndDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textDirection="rtl"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnManageSubscription"
+                    style="@style/Widget.GreenFlow.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/btn_manage_subscription"
+                    android:textDirection="rtl" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- 1. Toggle On/Off -->
         <com.google.android.material.card.MaterialCardView
@@ -49,7 +149,7 @@
                     android:textColor="?android:attr/textColorPrimary"
                     android:textDirection="rtl" />
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/mainSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
@@ -60,10 +160,9 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_sm"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
             android:text="@string/dashboard_filters_section"
-            android:textAppearance="?attr/textAppearanceSubtitle2"
-            android:textColor="?android:attr/textColorSecondary"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
             android:textDirection="rtl" />
 
         <com.google.android.material.card.MaterialCardView
@@ -92,29 +191,6 @@
                     app:iconSize="22dp"
                     app:iconTint="@color/onPrimary" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="@dimen/spacing_md">
-
-                    <TextView
-                        android:id="@+id/forwardAllWhenNoFiltersLabel"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/dashboard_forward_all_when_no_filters"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textDirection="rtl" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/forwardAllWhenNoFiltersSwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
                 <TextView
                     android:id="@+id/filtersStatusText"
                     android:layout_width="match_parent"
@@ -141,10 +217,9 @@
             android:id="@+id/permissionsSectionTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_sm"
+            android:layout_marginBottom="@dimen/section_header_margin_bottom"
             android:text="@string/dashboard_permissions_denied"
-            android:textAppearance="?attr/textAppearanceSubtitle2"
-            android:textColor="?android:attr/textColorSecondary"
+            style="@style/TextAppearance.GreenFlow.SectionTitle"
             android:textDirection="rtl" />
 
         <LinearLayout

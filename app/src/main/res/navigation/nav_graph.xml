@@ -97,7 +97,7 @@
     <fragment
         android:id="@+id/PermissionsFragment"
         android:name="com.tanglycohort.greenflow.PermissionsFragment"
-        android:label="fragment_permissions">
+        android:label="@string/permissions_page_title">
         <action
             android:id="@+id/action_PermissionsFragment_to_DashboardFragment"
             app:destination="@id/DashboardFragment"
@@ -113,7 +113,7 @@
     <fragment
         android:id="@+id/PermissionsEduFragment"
         android:name="com.tanglycohort.greenflow.PermissionsEduFragment"
-        android:label="fragment_permissions_edu">
+        android:label="@string/title_sms_permission_edu">
         <action
             android:id="@+id/action_PermissionsEduFragment_to_PermissionsFragment"
             app:destination="@id/PermissionsFragment"
@@ -124,7 +124,7 @@
     <fragment
         android:id="@+id/PermissionsDeniedFragment"
         android:name="com.tanglycohort.greenflow.PermissionsDeniedFragment"
-        android:label="fragment_permissions_denied">
+        android:label="@string/title_sms_permission_denied">
         <action
             android:id="@+id/action_PermissionsDeniedFragment_to_PermissionsFragment"
             app:destination="@id/PermissionsFragment"

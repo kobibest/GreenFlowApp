@@ -15,22 +15,21 @@ android {
         minSdkVersion rootProject.minSdkVersion
         targetSdkVersion rootProject.targetSdkVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        versionCode 10
-        versionName "1.0.3"
-        buildConfigField "String", "SERVER_BASE_URL", "\"https://dzqrjfxsgfymwqiabgwl.supabase.co\""
-        buildConfigField "String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cXJqZnhzZ2Z5bXdxaWFiZ3dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTU0NTIsImV4cCI6MjA4NzMzMTQ1Mn0.Ri0XAfRU7K2y28gldDuvINyqdKP24R6NcKdGNlJPcL8\""
-        buildConfigField "String", "BUG_REPORT_URL", "\"https://dzqrjfxsgfymwqiabgwl.supabase.co/functions/v1/bug-report\""
-    }
+        versionCode 20
+        versionName "1.1.3"
+        buildConfigField "String", "SERVER_BASE_URL", "\"https://nboxonukjibwmwzeqjlf.supabase.co\""
+        buildConfigField "String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ib3hvbnVramlid213emVxamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzczNjksImV4cCI6MjA4ODYxMzM2OX0.6zk7oUGytqvy9BgYrd1vguuEZJSBmEtFoc0nsw-tQJo\""
+        buildConfigField "String", "BUG_REPORT_URL", "\"https://nboxonukjibwmwzeqjlf.supabase.co/functions/v1/bug-report\""    }
 
     buildFeatures {
         viewBinding true
         buildConfig true
-        compose true
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
@@ -43,20 +42,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.8'
-    }
 }
 
 dependencies {
     // Navigation component
     implementation "androidx.navigation:navigation-fragment-ktx:$rootProject.navVersion"
     implementation "androidx.navigation:navigation-ui-ktx:$rootProject.navVersion"
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-
-    // Preferences component
-    implementation "androidx.preference:preference-ktx:1.2.0"
 
     // WorkManager component
     implementation "androidx.work:work-runtime-ktx:2.7.1"
@@ -64,7 +55,6 @@ dependencies {
     // Third-party
     implementation "com.squareup.okhttp3:okhttp:4.8.1"
     implementation 'com.google.code.gson:gson:2.10.1'
-    implementation "com.google.android.material:compose-theme-adapter-3:1.1.1"
 
     // Core
     implementation "androidx.activity:activity-ktx:1.5.1"
@@ -86,17 +76,8 @@ dependencies {
     implementation "io.ktor:ktor-client-okhttp:2.3.7"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2"
 
-    // Compose
-    def composeBom = platform('androidx.compose:compose-bom:2023.08.00')
-    implementation composeBom
-    androidTestImplementation composeBom
-
-    implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.compose.runtime:runtime-livedata'
-    implementation 'androidx.compose.foundation:foundation'
-    implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
-    debugImplementation 'androidx.compose.ui:ui-tooling'
+    // Google Play Billing
+    implementation "com.android.billingclient:billing-ktx:6.1.0"
 
     testImplementation "junit:junit:4.13.2"
     androidTestImplementation "androidx.test.espresso:espresso-core:3.4.0"

@@ -139,4 +139,9 @@ class AuthRepository {
     fun currentUser() = auth.currentUserOrNull()
 
     fun sessionStatus(): Flow<*> = auth.sessionStatus
+
+    /** Refreshes the current session to obtain a fresh access token. Call before using the token for API requests to avoid 401 Invalid JWT. */
+    suspend fun refreshSession(): Result<Unit> = runCatching {
+        auth.refreshCurrentSession()
+    }
 }

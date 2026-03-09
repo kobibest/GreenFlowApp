@@ -9,6 +9,9 @@
     <!-- Surfaces -->
     <color name="surface">#FFFFFF</color>
     <color name="surfaceVariant">#F5F9F6</color>
+    <color name="surfaceContainer">#EEF5F0</color>
+    <color name="surfaceContainerHigh">#E8F0EB</color>
+    <color name="surfaceContainerLow">#F3FAF5</color>
     <color name="background">#F0F7F2</color>
 
     <!-- Text -->
@@ -16,10 +19,19 @@
     <color name="onSurface">#1A2E24</color>
     <color name="onSurfaceVariant">#5A6B63</color>
     <color name="outline">#A8B8B0</color>
+    <color name="outlineVariant">#DCE5E0</color>
+
+    <!-- Error -->
+    <color name="error">#BA1A1A</color>
+    <color name="onError">#FFFFFF</color>
 
     <!-- Night -->
     <color name="backgroundNight">#121D18</color>
     <color name="surfaceNight">#1A2E24</color>
+    <color name="surfaceContainerNight">#1E3328</color>
+    <color name="surfaceContainerHighNight">#283D32</color>
     <color name="onSurfaceNight">#E8F0EC</color>
     <color name="onSurfaceVariantNight">#A8B8B0</color>
+    <color name="outlineNight">#8A9E96</color>
+    <color name="outlineVariantNight">#3D5048</color>
 </resources>

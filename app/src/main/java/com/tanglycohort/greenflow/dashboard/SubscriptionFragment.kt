@@ -1,5 +1,7 @@
 package com.tanglycohort.greenflow.dashboard
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,9 +14,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
 import com.tanglycohort.greenflow.R
+import com.tanglycohort.greenflow.billing.BillingManager
 import com.tanglycohort.greenflow.data.model.Plan
 import com.tanglycohort.greenflow.data.repository.AuthRepository
 import com.tanglycohort.greenflow.databinding.FragmentSubscriptionBinding
+import com.tanglycohort.greenflow.supabase.SupabaseProvider
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -27,6 +31,8 @@ class SubscriptionFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: DashboardViewModel by viewModels()
+
+    private var billingManager: BillingManager? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSubscriptionBinding.inflate(inflater, container, false)
@@ -44,7 +50,15 @@ class SubscriptionFragment : Fragment() {
         }
         viewModel.loadDashboard(userId)
 
+        billingManager = BillingManager(requireContext()).also { it.connect() }
+
         binding.trialButton.setOnClickListener { viewModel.startTrial(userId) }
+        binding.cancelSubscriptionButton.setOnClickListener {
+            val packageName = requireContext().packageName
+            val uri = Uri.parse("https://play.google.com/store/account/subscriptions?package=$packageName")
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+            Toast.makeText(requireContext(), getString(R.string.cancel_subscription_toast), Toast.LENGTH_LONG).show()
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.collectLatest { state ->
@@ -61,7 +75,11 @@ class SubscriptionFragment : Fragment() {
                         SubscriptionDisplayStatus.CANCELLED -> "בוטל"
                         SubscriptionDisplayStatus.INACTIVE -> getString(R.string.status_inactive)
                     }
-                    binding.trialButton.visibility = if (viewModel.canShowTrialButton()) View.VISIBLE else View.GONE
+                    val showTrial = viewModel.canShowTrialButton()
+                    binding.trialButton.visibility = if (showTrial) View.VISIBLE else View.GONE
+                    binding.trialSectionTitle.visibility = if (showTrial) View.VISIBLE else View.GONE
+                    val isActivePaid = status == SubscriptionDisplayStatus.ACTIVE
+                    binding.cancelSubscriptionButton.visibility = if (isActivePaid) View.VISIBLE else View.GONE
                     refreshPlansList(state.plans, userId)
                 }
             }
@@ -72,6 +90,7 @@ class SubscriptionFragment : Fragment() {
                 when (event) {
                     is DashboardEvent.ShowError -> Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
                     DashboardEvent.NavigateToLogin -> { /* logout handled from drawer */ }
+                    DashboardEvent.TrialStarted -> Toast.makeText(requireContext(), getString(R.string.trial_started_toast), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -79,7 +98,11 @@ class SubscriptionFragment : Fragment() {
 
     private fun refreshPlansList(plans: List<Plan>, userId: String) {
         binding.plansList.removeAllViews()
-        plans.forEach { plan ->
+        val billing = billingManager
+        val activity = activity
+        // Show only monthly plans (no annual subscription option)
+        val monthlyPlans = plans.filter { (it.durationDays ?: 0) <= 35 }
+        monthlyPlans.forEach { plan ->
             val card = layoutInflater.inflate(R.layout.item_plan, binding.plansList, false) as MaterialCardView
             card.findViewById<TextView>(R.id.planName).text = plan.name ?: ""
             val duration = plan.durationDays ?: 0
@@ -90,7 +113,39 @@ class SubscriptionFragment : Fragment() {
                 getString(R.string.plan_price_only, priceStr)
             }
             card.findViewById<View>(R.id.planSubscribeButton).setOnClickListener {
-                viewModel.subscribeToPlan(userId, plan)
+                val planId = plan.id
+                val playProductId = plan.playProductId
+                if (!playProductId.isNullOrBlank() && billing != null) {
+                    val act = requireActivity()
+                    billing.querySubscriptionProductDetails(playProductId) { productDetails ->
+                        val details = productDetails
+                        if (details == null) {
+                            Toast.makeText(requireContext(), getString(R.string.billing_not_available), Toast.LENGTH_SHORT).show()
+                            return@querySubscriptionProductDetails
+                        }
+                        billing.launchSubscriptionPurchase(
+                            activity = act,
+                            productDetails = details,
+                            onSuccess = { purchase ->
+                                billing.acknowledgePurchaseIfNeeded(purchase) {
+                                    val token = SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
+                                    if (token != null) {
+                                        viewModel.onPlayPurchaseSuccess(
+                                            userId = userId,
+                                            accessToken = token,
+                                            purchaseToken = purchase.purchaseToken,
+                                            productId = purchase.products.firstOrNull() ?: playProductId,
+                                            packageName = requireContext().packageName
+                                        )
+                                    }
+                                }
+                            },
+                            onError = { msg -> if (msg != null) Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show() }
+                        )
+                    }
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.billing_plan_not_configured), Toast.LENGTH_LONG).show()
+                }
             }
             binding.plansList.addView(card)
         }
@@ -105,6 +160,8 @@ class SubscriptionFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        billingManager?.endConnection()
+        billingManager = null
         super.onDestroyView()
         _binding = null
     }
