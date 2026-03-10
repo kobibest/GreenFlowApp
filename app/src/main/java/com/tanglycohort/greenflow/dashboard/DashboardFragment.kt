@@ -21,8 +21,10 @@ import com.tanglycohort.greenflow.BuildConfig
 import com.tanglycohort.greenflow.DeviceId
 import com.tanglycohort.greenflow.FetchFiltersWorker
 import com.tanglycohort.greenflow.data.repository.ProfilesRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.tanglycohort.greenflow.FilterSystemState
 import com.tanglycohort.greenflow.R
 import com.tanglycohort.greenflow.RuntimePermissions
@@ -30,6 +32,7 @@ import com.tanglycohort.greenflow.SmsFilter
 import com.tanglycohort.greenflow.databinding.FragmentDashboardBinding
 import com.tanglycohort.greenflow.debug.DebugAgentLog
 import com.tanglycohort.greenflow.service.WebhookService
+import com.tanglycohort.greenflow.supabase.SupabaseAuth
 import io.github.jan.supabase.gotrue.auth
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -70,9 +73,8 @@ class DashboardFragment : Fragment() {
         // Auto-trigger filter fetch when dashboard is shown and no filters loaded yet (or to refresh)
         if (SmsFilter.getFilters(requireContext()).isNullOrEmpty()) {
             viewLifecycleOwner.lifecycleScope.launch {
-                com.tanglycohort.greenflow.data.repository.AuthRepository().refreshSession()
-                val token = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
-                FetchFiltersWorker.enqueueOnce(requireContext(), accessToken = token)
+                val token = withContext(Dispatchers.IO) { SupabaseAuth.getValidAccessToken(forceRefresh = true) }
+                if (token != null) FetchFiltersWorker.enqueueOnce(requireContext(), accessToken = token)
             }
         }
 
@@ -83,15 +85,26 @@ class DashboardFragment : Fragment() {
                 binding.dashboardProgress.visibility = if (state.loading) View.VISIBLE else View.GONE
                 if (!state.loading) {
                     val status = viewModel.subscriptionDisplayStatus()
-                    val isActive = status == SubscriptionDisplayStatus.ACTIVE || status == SubscriptionDisplayStatus.TRIAL
+                    val isActive = status == SubscriptionDisplayStatus.ACTIVE || status == SubscriptionDisplayStatus.TRIAL ||
+                        status == SubscriptionDisplayStatus.CANCELLED_VALID || status == SubscriptionDisplayStatus.GRACE_PERIOD
+                    val sub = state.subscription
                     binding.dashboardSubscriptionStatus.text = when (status) {
-                        SubscriptionDisplayStatus.ACTIVE, SubscriptionDisplayStatus.TRIAL -> getString(R.string.status_active)
+                        SubscriptionDisplayStatus.ACTIVE -> getString(R.string.status_active)
+                        SubscriptionDisplayStatus.TRIAL -> {
+                            val daysRemaining = sub?.endsAt?.let { end ->
+                                runCatching {
+                                    (java.time.Instant.parse(end).toEpochMilli() - System.currentTimeMillis()) / 86400000
+                                }.getOrNull()?.toInt() ?: 0
+                            } ?: 0
+                            getString(R.string.subscription_trial_active, daysRemaining.coerceAtLeast(0))
+                        }
+                        SubscriptionDisplayStatus.CANCELLED_VALID -> sub?.endsAt?.let { getString(R.string.subscription_cancelled_valid, formatDate(it)) } ?: getString(R.string.status_active)
+                        SubscriptionDisplayStatus.GRACE_PERIOD -> getString(R.string.subscription_grace_period)
                         SubscriptionDisplayStatus.BLOCKED -> getString(R.string.status_blocked)
                         SubscriptionDisplayStatus.EXPIRED, SubscriptionDisplayStatus.TRIAL_EXPIRED -> getString(R.string.status_expired)
                         SubscriptionDisplayStatus.CANCELLED -> "בוטל"
                         SubscriptionDisplayStatus.INACTIVE -> getString(R.string.status_inactive)
                     }
-                    val sub = state.subscription
                     val plan = sub?.planId?.let { pid -> state.plans.find { it.id == pid } }
                     val durationDays = plan?.durationDays ?: 0
                     // Only monthly is offered; show type only for monthly
@@ -113,12 +126,32 @@ class DashboardFragment : Fragment() {
                     binding.dashboardSubscriptionEndLabel.visibility = View.VISIBLE
                     binding.dashboardSubscriptionEndDate.visibility = View.VISIBLE
                     binding.dashboardSubscriptionEndDate.text = endDateStr
+                    when (status) {
+                        SubscriptionDisplayStatus.CANCELLED_VALID -> {
+                            binding.btnManageSubscription.text = getString(R.string.btn_renew_subscription)
+                            binding.btnManageSubscription.visibility = View.VISIBLE
+                        }
+                        SubscriptionDisplayStatus.GRACE_PERIOD -> {
+                            binding.btnManageSubscription.text = getString(R.string.btn_manage_subscription)
+                            binding.btnManageSubscription.visibility = View.VISIBLE
+                        }
+                        else -> {
+                            binding.btnManageSubscription.text = getString(R.string.btn_manage_subscription)
+                            binding.btnManageSubscription.visibility = if (isActive) View.VISIBLE else View.GONE
+                        }
+                    }
                 }
             }
         }
 
         binding.btnManageSubscription.setOnClickListener {
-            findNavController().navigate(R.id.action_DashboardFragment_to_SubscriptionFragment)
+            val status = viewModel.subscriptionDisplayStatus()
+            if (status == SubscriptionDisplayStatus.CANCELLED_VALID) {
+                val uri = Uri.parse("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+            } else {
+                findNavController().navigate(R.id.action_DashboardFragment_to_SubscriptionFragment)
+            }
         }
 
         // 1. Toggle On/Off
@@ -133,13 +166,12 @@ class DashboardFragment : Fragment() {
         observeFiltersFetchWork()
         binding.refreshFiltersButton.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
-                val authRepo = com.tanglycohort.greenflow.data.repository.AuthRepository()
-                val refreshOk = authRepo.refreshSession().isSuccess
-                if (!refreshOk) {
+                val token = withContext(Dispatchers.IO) { SupabaseAuth.getValidAccessToken(forceRefresh = true) }
+                if (token == null) {
                     AppLog.e("DashboardFragment", "Session refresh failed before fetch filters")
                     Toast.makeText(requireContext(), R.string.main_refresh_session_failed, Toast.LENGTH_LONG).show()
+                    return@launch
                 }
-                val token = com.tanglycohort.greenflow.supabase.SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
                 FetchFiltersWorker.enqueueOnce(requireContext(), accessToken = token)
                 Toast.makeText(requireContext(), R.string.main_refresh_filters_toast, Toast.LENGTH_SHORT).show()
                 updateLastFiltersUpdateText()

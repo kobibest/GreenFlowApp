@@ -96,7 +96,8 @@
     <string name="trial_section">7 ימי ניסיון</string>
     <string name="plans_section">תוכניות בתשלום</string>
     <string name="btn_subscribe_plan">הפעל מנוי</string>
-    <string name="billing_not_available">תשלום דרך Google לא זמין כרגע</string>
+    <string name="billing_not_available">תשלום דרך Google לא זמין כרגע. באמולטור או ללא חנות – נסה במכשיר אמיתי עם Google Play.</string>
+    <string name="billing_checking">בודק מנוי…</string>
     <string name="billing_plan_not_configured">מנוי זה דורש תשלום ב-Google Play. המנוי לא מוגדר לתשלום — פנה לתמיכה.</string>
     <string name="plan_price_duration">%1$s • %2$d ימים</string>
     <string name="plan_price_only">%1$s</string>
@@ -115,6 +116,10 @@
     <string name="status_expired">המנוי פג. פנה למנהל.</string>
     <string name="btn_trial">7 ימי ניסיון חינם</string>
     <string name="trial_started_toast">ניסיון של 7 ימים הופעל בהצלחה</string>
+    <string name="subscription_cancelled_valid">המנוי שלך פעיל עד %s. המנוי לא יחודש אוטומטית.</string>
+    <string name="subscription_grace_period">בעיית תשלום – אנא עדכן אמצעי תשלום ב-Google Play.</string>
+    <string name="subscription_trial_active">ניסיון חינם – נגמר בעוד %d ימים.</string>
+    <string name="btn_renew_subscription">חדש מנוי</string>
     <string name="device_not_set">לא מוגדר</string>
     <string name="device_pending">ממתין להפעלה</string>
     <string name="device_connected">מחובר</string>

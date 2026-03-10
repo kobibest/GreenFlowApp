@@ -11,5 +11,7 @@ data class Subscription(
     val status: String? = null, // active, trial, blocked, cancelled
     @SerialName("starts_at") val startsAt: String? = null,
     @SerialName("ends_at") val endsAt: String? = null,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("auto_renewing") val autoRenewing: Boolean? = null,
+    @SerialName("payment_state") val paymentState: String? = null // pending, received, free_trial
 )

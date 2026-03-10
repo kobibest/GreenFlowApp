@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
 import com.tanglycohort.greenflow.R
 import com.tanglycohort.greenflow.billing.BillingManager
+import com.tanglycohort.greenflow.billing.ProductIds
 import com.tanglycohort.greenflow.data.model.Plan
 import com.tanglycohort.greenflow.data.repository.AuthRepository
 import com.tanglycohort.greenflow.databinding.FragmentSubscriptionBinding
@@ -34,6 +35,14 @@ class SubscriptionFragment : Fragment() {
 
     private var billingManager: BillingManager? = null
 
+    private fun formatDate(iso: String?): String {
+        if (iso == null) return ""
+        return try {
+            val i = Instant.parse(iso)
+            DateTimeFormatter.ISO_LOCAL_DATE.format(i.atZone(java.time.ZoneId.systemDefault()))
+        } catch (_: Exception) { iso }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSubscriptionBinding.inflate(inflater, container, false)
         return binding.root
@@ -48,9 +57,14 @@ class SubscriptionFragment : Fragment() {
             findNavController().navigate(R.id.LoginFragment)
             return
         }
-        viewModel.loadDashboard(userId)
-
         billingManager = BillingManager(requireContext()).also { it.connect() }
+        val accessToken = SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
+        viewModel.loadDashboard(
+            userId,
+            querySubscriptions = { callback -> billingManager?.queryCurrentSubscriptions(callback) },
+            accessToken = accessToken,
+            packageName = requireContext().packageName
+        )
 
         binding.trialButton.setOnClickListener { viewModel.startTrial(userId) }
         binding.cancelSubscriptionButton.setOnClickListener {
@@ -65,11 +79,21 @@ class SubscriptionFragment : Fragment() {
                 binding.subscriptionProgress.visibility = if (state.loading) View.VISIBLE else View.GONE
                 if (!state.loading) {
                     val status = viewModel.subscriptionDisplayStatus()
+                    val sub = state.subscription
                     binding.subscriptionStatusText.text = when (status) {
-                        SubscriptionDisplayStatus.ACTIVE, SubscriptionDisplayStatus.TRIAL -> {
-                            val sub = state.subscription
+                        SubscriptionDisplayStatus.ACTIVE -> {
                             if (sub != null) "מ־${formatDate(sub.startsAt)} עד ${formatDate(sub.endsAt)}" else ""
                         }
+                        SubscriptionDisplayStatus.TRIAL -> {
+                            val daysRemaining = sub?.endsAt?.let { end ->
+                                runCatching {
+                                    (java.time.Instant.parse(end).toEpochMilli() - System.currentTimeMillis()) / 86400000
+                                }.getOrNull()?.toInt() ?: 0
+                            } ?: 0
+                            getString(R.string.subscription_trial_active, daysRemaining.coerceAtLeast(0))
+                        }
+                        SubscriptionDisplayStatus.CANCELLED_VALID -> sub?.endsAt?.let { getString(R.string.subscription_cancelled_valid, formatDate(it)) } ?: ""
+                        SubscriptionDisplayStatus.GRACE_PERIOD -> getString(R.string.subscription_grace_period)
                         SubscriptionDisplayStatus.BLOCKED -> getString(R.string.status_blocked)
                         SubscriptionDisplayStatus.EXPIRED, SubscriptionDisplayStatus.TRIAL_EXPIRED -> getString(R.string.status_expired)
                         SubscriptionDisplayStatus.CANCELLED -> "בוטל"
@@ -78,8 +102,24 @@ class SubscriptionFragment : Fragment() {
                     val showTrial = viewModel.canShowTrialButton()
                     binding.trialButton.visibility = if (showTrial) View.VISIBLE else View.GONE
                     binding.trialSectionTitle.visibility = if (showTrial) View.VISIBLE else View.GONE
-                    val isActivePaid = status == SubscriptionDisplayStatus.ACTIVE
-                    binding.cancelSubscriptionButton.visibility = if (isActivePaid) View.VISIBLE else View.GONE
+                    val showCancelButton = status == SubscriptionDisplayStatus.ACTIVE
+                    val showRenewButton = status == SubscriptionDisplayStatus.CANCELLED_VALID
+                    binding.cancelSubscriptionButton.visibility = if (showCancelButton || showRenewButton) View.VISIBLE else View.GONE
+                    if (showRenewButton) {
+                        binding.cancelSubscriptionButton.text = getString(R.string.btn_renew_subscription)
+                        binding.cancelSubscriptionButton.setOnClickListener {
+                            val uri = Uri.parse("https://play.google.com/store/account/subscriptions?package=${requireContext().packageName}")
+                            startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        }
+                    } else {
+                        binding.cancelSubscriptionButton.text = getString(R.string.btn_cancel_subscription)
+                        binding.cancelSubscriptionButton.setOnClickListener {
+                            val packageName = requireContext().packageName
+                            val uri = Uri.parse("https://play.google.com/store/account/subscriptions?package=$packageName")
+                            startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            Toast.makeText(requireContext(), getString(R.string.cancel_subscription_toast), Toast.LENGTH_LONG).show()
+                        }
+                    }
                     refreshPlansList(state.plans, userId)
                 }
             }
@@ -113,50 +153,44 @@ class SubscriptionFragment : Fragment() {
                 getString(R.string.plan_price_only, priceStr)
             }
             card.findViewById<View>(R.id.planSubscribeButton).setOnClickListener {
-                val planId = plan.id
-                val playProductId = plan.playProductId
-                if (!playProductId.isNullOrBlank() && billing != null) {
-                    val act = requireActivity()
-                    billing.querySubscriptionProductDetails(playProductId) { productDetails ->
-                        val details = productDetails
-                        if (details == null) {
-                            Toast.makeText(requireContext(), getString(R.string.billing_not_available), Toast.LENGTH_SHORT).show()
-                            return@querySubscriptionProductDetails
+                if (billing == null) {
+                    Toast.makeText(requireContext(), getString(R.string.billing_plan_not_configured), Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                // Immediate feedback so user sees the click was registered
+                Toast.makeText(requireContext(), getString(R.string.billing_checking), Toast.LENGTH_SHORT).show()
+                val act = requireActivity()
+                billing.querySubscriptionProductDetails { productDetails ->
+                    act.runOnUiThread {
+                        if (!isAdded) return@runOnUiThread
+                        if (productDetails == null) {
+                            Toast.makeText(requireContext(), getString(R.string.billing_not_available), Toast.LENGTH_LONG).show()
+                            return@runOnUiThread
                         }
                         billing.launchSubscriptionPurchase(
-                            activity = act,
-                            productDetails = details,
-                            onSuccess = { purchase ->
-                                billing.acknowledgePurchaseIfNeeded(purchase) {
-                                    val token = SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
-                                    if (token != null) {
-                                        viewModel.onPlayPurchaseSuccess(
-                                            userId = userId,
-                                            accessToken = token,
-                                            purchaseToken = purchase.purchaseToken,
-                                            productId = purchase.products.firstOrNull() ?: playProductId,
-                                            packageName = requireContext().packageName
-                                        )
-                                    }
+                        activity = act,
+                        productDetails = productDetails,
+                        onSuccess = { purchase ->
+                            billing.acknowledgePurchaseIfNeeded(purchase) {
+                                val token = SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
+                                if (token != null) {
+                                    viewModel.onPlayPurchaseSuccess(
+                                        userId = userId,
+                                        accessToken = token,
+                                        purchaseToken = purchase.purchaseToken,
+                                        productId = purchase.products.firstOrNull() ?: ProductIds.MONTHLY_SUB,
+                                        packageName = requireContext().packageName
+                                    )
                                 }
-                            },
-                            onError = { msg -> if (msg != null) Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show() }
-                        )
-                    }
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.billing_plan_not_configured), Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        onError = { msg -> if (msg != null) Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show() }
+                    )
                 }
+            }
             }
             binding.plansList.addView(card)
         }
-    }
-
-    private fun formatDate(iso: String?): String {
-        if (iso == null) return ""
-        return try {
-            val i = Instant.parse(iso)
-            DateTimeFormatter.ISO_LOCAL_DATE.format(i.atZone(java.time.ZoneId.systemDefault()))
-        } catch (_: Exception) { iso }
     }
 
     override fun onDestroyView() {

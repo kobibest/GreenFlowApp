@@ -8,15 +8,41 @@ import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+
+object ProductIds {
+    const val MONTHLY_SUB = "greenflow_monthly"
+}
+
+object OfferTags {
+    const val BASE = "monthly-auto"
+    const val TRIAL = "free-trial"
+}
 
 /**
  * Handles Google Play Billing: connect, query subscription products, launch purchase.
  * Only after a successful purchase should the app/server be updated (via backend verification).
  */
 class BillingManager(private val context: Context) {
+
+    /**
+     * Select offer token: prefer offer with TRIAL tag, else BASE tag.
+     */
+    private fun selectOfferToken(productDetails: ProductDetails): String? {
+        val offers = productDetails.subscriptionOfferDetails ?: return null
+        val trialOffer = offers.firstOrNull { offer ->
+            offer.offerTags.contains(OfferTags.TRIAL)
+        }
+        if (trialOffer != null) return trialOffer.offerToken
+        val baseOffer = offers.firstOrNull { offer ->
+            offer.offerTags.contains(OfferTags.BASE)
+        }
+        return baseOffer?.offerToken
+    }
 
     @Volatile
     private var purchaseFlowCallback: ((BillingResult, List<Purchase>?) -> Unit)? = null
@@ -33,7 +59,12 @@ class BillingManager(private val context: Context) {
             if (_billingClient == null) {
                 _billingClient = BillingClient.newBuilder(context)
                     .setListener(purchasesUpdatedListener)
-                    .enablePendingPurchases()
+                    .enablePendingPurchases(
+                        PendingPurchasesParams.newBuilder()
+                            .enableOneTimeProducts()
+                            .enablePrepaidPlans()
+                            .build()
+                    )
                     .build()
                 _billingClient!!.startConnection(object : BillingClientStateListener {
                     override fun onBillingSetupFinished(billingResult: BillingResult) {}
@@ -55,10 +86,31 @@ class BillingManager(private val context: Context) {
 
     private fun getClient(): BillingClient? = billingClient
 
-    fun querySubscriptionProductDetails(
-        productId: String,
-        callback: (ProductDetails?) -> Unit
-    ) {
+    /**
+     * Query current subscription purchases from Google Play. Use to detect purchases not yet synced to Supabase.
+     */
+    fun queryCurrentSubscriptions(callback: (List<Purchase>) -> Unit) {
+        val client = getClient()
+        if (client == null || !client.isReady) {
+            callback(emptyList())
+            return
+        }
+        client.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        ) { result, purchases ->
+            val valid = purchases?.filter {
+                it.purchaseState == Purchase.PurchaseState.PURCHASED
+            } ?: emptyList()
+            callback(valid)
+        }
+    }
+
+    /**
+     * Query product details for the monthly subscription (ProductIds.MONTHLY_SUB).
+     */
+    fun querySubscriptionProductDetails(callback: (ProductDetails?) -> Unit) {
         val client = getClient()
         if (client == null || !client.isReady) {
             callback(null)
@@ -68,7 +120,7 @@ class BillingManager(private val context: Context) {
             .setProductList(
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
+                        .setProductId(ProductIds.MONTHLY_SUB)
                         .setProductType(BillingClient.ProductType.SUBS)
                         .build()
                 )
@@ -99,7 +151,7 @@ class BillingManager(private val context: Context) {
             onError("Billing not ready")
             return
         }
-        val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+        val offerToken = selectOfferToken(productDetails)
         if (offerToken == null) {
             onError("No offer for this subscription")
             return

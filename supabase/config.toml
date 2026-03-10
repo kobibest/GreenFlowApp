@@ -1,3 +1,7 @@
+[functions.sms-filters]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/sms-filters/index.ts"
 
 [functions.verify-purchase]
 enabled = true
@@ -12,7 +16,7 @@ entrypoint = "./functions/verify-purchase/index.ts"
 
 [functions.sms-webhook]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/sms-webhook/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

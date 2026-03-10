@@ -38,7 +38,9 @@ data class SmsFilter(
         }
 
         /**
-         * Returns true if the message should be sent to webhook (passes at least one filter).
+         * Returns true if the message should be sent to webhook (passes at least one rule).
+         * Within each rule: AND – sender must match AND body must contain at least one of the words.
+         * Between rules: OR – one matching rule is enough.
          * When filters is null or empty, returns false (do not send – whitelist only).
          */
         fun matches(
@@ -47,12 +49,22 @@ data class SmsFilter(
             filters: List<SmsFilter>?
         ): Boolean {
             if (filters == null || filters.isEmpty()) return false
-            return filters.any { filter ->
-                when (filter.type) {
-                    "sender" -> filter.values.any { it == originatingAddress }
-                    "body" -> filter.values.any { (messageBody ?: "").contains(it) }
-                    else -> false
+            val bodyStr = messageBody ?: ""
+            // Group by rule id (id without _sender / _body suffix)
+            val rules = filters.groupBy { f ->
+                when {
+                    f.id.endsWith("_sender") -> f.id.removeSuffix("_sender")
+                    f.id.endsWith("_body") -> f.id.removeSuffix("_body")
+                    else -> f.id
                 }
+            }
+            return rules.values.any { ruleFilters ->
+                val senderFilter = ruleFilters.find { it.type == "sender" }
+                val bodyFilter = ruleFilters.find { it.type == "body" }
+                val senderMatches = senderFilter?.values?.any { it == originatingAddress } == true
+                val bodyMatches = bodyFilter == null ||
+                    bodyFilter.values.any { bodyStr.contains(it) }
+                senderMatches && bodyMatches
             }
         }
     }

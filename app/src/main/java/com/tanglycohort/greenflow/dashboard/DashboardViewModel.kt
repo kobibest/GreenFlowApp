@@ -2,6 +2,7 @@ package com.tanglycohort.greenflow.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.billingclient.api.Purchase
 import com.tanglycohort.greenflow.data.model.Plan
 import com.tanglycohort.greenflow.data.model.Profile
 import com.tanglycohort.greenflow.data.model.Subscription
@@ -21,7 +22,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 
 enum class SubscriptionDisplayStatus {
-    INACTIVE, BLOCKED, CANCELLED, TRIAL_EXPIRED, EXPIRED, TRIAL, ACTIVE
+    INACTIVE, BLOCKED, CANCELLED, CANCELLED_VALID, GRACE_PERIOD, TRIAL_EXPIRED, EXPIRED, TRIAL, ACTIVE
 }
 
 data class DashboardState(
@@ -53,7 +54,17 @@ class DashboardViewModel(
     private val _events = MutableSharedFlow<DashboardEvent>()
     val events = _events.asSharedFlow()
 
-    fun loadDashboard(userId: String) {
+    /**
+     * @param querySubscriptions If non-null, after loading from Supabase this is called to get Google Play purchases; any purchase not already in Supabase is synced via verify-play-purchase.
+     * @param accessToken Required when querySubscriptions is non-null, for verify-play-purchase.
+     * @param packageName Required when querySubscriptions is non-null, for verify-play-purchase.
+     */
+    fun loadDashboard(
+        userId: String,
+        querySubscriptions: ((callback: (List<Purchase>) -> Unit) -> Unit)? = null,
+        accessToken: String? = null,
+        packageName: String? = null
+    ) {
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null)
             val subRepo = subscriptionsRepository
@@ -78,19 +89,68 @@ class DashboardViewModel(
                 profile = profile,
                 plans = plans
             )
+            if (querySubscriptions != null && !accessToken.isNullOrBlank() && !packageName.isNullOrBlank()) {
+                querySubscriptions.invoke { purchases ->
+                    viewModelScope.launch {
+                        syncUnsyncedPurchases(userId, purchases, accessToken, packageName)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * For each purchase not already reflected in Supabase subscription state, call verify-play-purchase to sync.
+     * Does not override Supabase status with Google result; Google is used only to detect unsynced purchases.
+     */
+    private suspend fun syncUnsyncedPurchases(
+        userId: String,
+        purchases: List<Purchase>,
+        accessToken: String,
+        packageName: String
+    ) {
+        val state = _state.value
+        val plans = state.plans
+        val currentPlanId = state.subscription?.planId
+        for (purchase in purchases) {
+            val productId = purchase.products.firstOrNull() ?: continue
+            val plan = plans.find { it.playProductId == productId } ?: continue
+            if (currentPlanId == plan.id) continue
+            subscriptionsRepository.verifyPlayPurchase(
+                accessToken = accessToken,
+                purchaseToken = purchase.purchaseToken,
+                productId = productId,
+                packageName = packageName
+            ).onSuccess {
+                loadDashboard(userId, null, null, null)
+            }
         }
     }
 
     fun subscriptionDisplayStatus(): SubscriptionDisplayStatus {
         val sub = _state.value.subscription ?: return SubscriptionDisplayStatus.INACTIVE
+        val endsAtInstant = sub.endsAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+        val now = Instant.now()
+        val isEnded = endsAtInstant != null && endsAtInstant <= now
         return when {
             sub.status == "blocked" -> SubscriptionDisplayStatus.BLOCKED
-            sub.status == "cancelled" -> SubscriptionDisplayStatus.CANCELLED
-            sub.endsAt != null && Instant.parse(sub.endsAt) < Instant.now() && sub.status == "trial" -> SubscriptionDisplayStatus.TRIAL_EXPIRED
-            sub.endsAt != null && Instant.parse(sub.endsAt) < Instant.now() -> SubscriptionDisplayStatus.EXPIRED
+            sub.status == "cancelled" && !isEnded -> SubscriptionDisplayStatus.CANCELLED_VALID
+            sub.status == "cancelled" && isEnded -> SubscriptionDisplayStatus.EXPIRED
+            sub.paymentState == "pending" && endsAtInstant != null && endsAtInstant > now -> SubscriptionDisplayStatus.GRACE_PERIOD
+            sub.status == "trial" && isEnded -> SubscriptionDisplayStatus.TRIAL_EXPIRED
+            isEnded -> SubscriptionDisplayStatus.EXPIRED
             sub.status == "trial" -> SubscriptionDisplayStatus.TRIAL
             else -> SubscriptionDisplayStatus.ACTIVE
         }
+    }
+
+    /** True if the user has full access (active, trial, or cancelled-but-still-valid). */
+    fun hasFullAccess(): Boolean {
+        val status = subscriptionDisplayStatus()
+        return status == SubscriptionDisplayStatus.ACTIVE ||
+            status == SubscriptionDisplayStatus.TRIAL ||
+            status == SubscriptionDisplayStatus.CANCELLED_VALID ||
+            status == SubscriptionDisplayStatus.GRACE_PERIOD
     }
 
     fun canShowTrialButton(): Boolean =

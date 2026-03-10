@@ -27,11 +27,18 @@ class SubscriptionsRepository {
         .build()
 
     suspend fun getActiveSubscription(userId: String): Subscription? = withContext(Dispatchers.IO) {
+        val now = Instant.now()
         runCatching {
             client.from("subscriptions").select {
                 filter {
                     eq("user_id", userId)
-                    isIn("status", listOf("active", "trial", "blocked"))
+                    or {
+                        isIn("status", listOf("active", "trial", "blocked"))
+                        and {
+                            eq("status", "cancelled")
+                            gt("ends_at", now.toString())
+                        }
+                    }
                 }
                 order("created_at", Order.DESCENDING)
                 limit(1)
@@ -95,7 +102,7 @@ class SubscriptionsRepository {
             put("package_name", packageName)
         }
         val request = Request.Builder()
-            .url("${BuildConfig.SERVER_BASE_URL}/functions/v1/verify-purchase")
+            .url("${BuildConfig.SERVER_BASE_URL}/functions/v1/verify-play-purchase")
             .addHeader("Authorization", "Bearer $accessToken")
             .addHeader("Content-Type", "application/json")
             .post(body.toString().toRequestBody("application/json".toMediaType()))

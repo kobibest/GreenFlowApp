@@ -1,6 +1,7 @@
 package com.tanglycohort.greenflow
 
 import android.content.Context
+import androidx.work.CoroutineWorker
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -8,16 +9,16 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.Worker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.tanglycohort.greenflow.BuildConfig
 import com.tanglycohort.greenflow.service.WebhookService
+import com.tanglycohort.greenflow.supabase.SupabaseAuth
 import com.tanglycohort.greenflow.supabase.SupabaseProvider
-import io.github.jan.supabase.gotrue.auth
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -36,24 +37,11 @@ data class ServerRule(
 )
 
 class FetchFiltersWorker(appContext: Context, workerParams: WorkerParameters) :
-    Worker(appContext, workerParams) {
+    CoroutineWorker(appContext, workerParams) {
 
-    override fun doWork(): Result {
-        val tokenFromInput = inputData.getString(KEY_ACCESS_TOKEN)
-        // Refresh session so we use a non-expired token (avoids 401 Invalid JWT)
-        val refreshOk = runBlocking {
-            runCatching { SupabaseProvider.client.auth.refreshCurrentSession() }
-                .onFailure { AppLog.d(TAG, "Session refresh before fetch filters failed: ${it.message}") }
-                .isSuccess
-        }
-        val accessToken = SupabaseProvider.client.auth.currentSessionOrNull()?.accessToken
-            ?: tokenFromInput?.takeIf { it.isNotBlank() }
-        if (accessToken.isNullOrBlank()) {
+    override suspend fun doWork(): Result {
+        if (withContext(Dispatchers.IO) { SupabaseAuth.getValidAccessToken(forceRefresh = false) }.isNullOrBlank()) {
             AppLog.d(TAG, "No user session, skipping filter fetch")
-            return Result.failure()
-        }
-        if (!refreshOk && tokenFromInput.isNullOrBlank()) {
-            AppLog.d(TAG, "Session refresh failed and no token in input, retrying later")
             return Result.retry()
         }
 
@@ -61,25 +49,22 @@ class FetchFiltersWorker(appContext: Context, workerParams: WorkerParameters) :
         val request = Request.Builder()
             .url(getFiltersUrl())
             .addHeader("apikey", BuildConfig.SUPABASE_ANON_KEY)
-            .addHeader("Authorization", "Bearer $accessToken")
             .build()
 
-        try {
-            val response = client.newCall(request).execute()
+        return try {
+            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
             if (!response.isSuccessful) {
                 val errBody = response.body?.string().orEmpty()
-                AppLog.e("FetchFiltersWorker", "Failed to fetch filters: ${response.code} body=$errBody")
-                // 401 Invalid JWT: token may be expired; retry so next run can refresh again
+                AppLog.e(TAG, "Failed to fetch filters: ${response.code} body=$errBody")
                 if (response.code == 401) return Result.retry()
                 return Result.failure()
             }
 
             val responseBody = response.body?.string()
-            if (responseBody == null) {
+            if (responseBody == null || responseBody.isBlank()) {
                 AppLog.e("FetchFiltersWorker", "Failed to fetch filters: empty response")
                 return Result.failure()
             }
-
             AppLog.d(TAG, "Filters API raw response (${responseBody.length} chars): ${responseBody.take(1000)}")
 
             val rulesResponse = Gson().fromJson(responseBody, RulesResponse::class.java)
@@ -111,6 +96,7 @@ class FetchFiltersWorker(appContext: Context, workerParams: WorkerParameters) :
                     AppLog.d(TAG, "Service disabled, not sending pending message to webhook: from=$pendingSender")
                 } else if (SmsFilter.matches(pendingSender, pendingBody, filters)) {
                     AppLog.d(TAG, "Pending message passes new filters, sending to webhook: from=$pendingSender")
+                    val tokenForWebhook = withContext(Dispatchers.IO) { SupabaseAuth.getValidAccessToken(forceRefresh = false) }
                     val constraints = Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
@@ -118,7 +104,7 @@ class FetchFiltersWorker(appContext: Context, workerParams: WorkerParameters) :
                         WebhookWorker.KEY_ORIGINATING_ADDRESS to pendingSender,
                         WebhookWorker.KEY_MESSAGE_BODY to pendingBody,
                         WebhookWorker.KEY_RECEIVED_AT to receivedAt,
-                        WebhookWorker.KEY_ACCESS_TOKEN to (accessToken ?: "")
+                        WebhookWorker.KEY_ACCESS_TOKEN to (tokenForWebhook ?: "")
                     )
                     val webhookRequest = OneTimeWorkRequestBuilder<WebhookWorker>()
                         .setConstraints(constraints)
